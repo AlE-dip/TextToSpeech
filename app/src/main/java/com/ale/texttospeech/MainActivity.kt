@@ -4,8 +4,20 @@ import android.os.Bundle
 import android.speech.tts.TextToSpeech
 import android.speech.tts.UtteranceProgressListener
 import android.view.Menu
+import android.view.View
+import android.widget.Adapter
+import android.widget.AdapterView
+import android.widget.ArrayAdapter
+import android.widget.ListPopupWindow
+import android.widget.PopupMenu
+import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.drawerlayout.widget.DrawerLayout
+import androidx.lifecycle.AndroidViewModel
+import androidx.lifecycle.Observer
+import androidx.lifecycle.Transformations
+import androidx.lifecycle.ViewModelProvider
+import androidx.lifecycle.get
 import androidx.navigation.findNavController
 import androidx.navigation.ui.AppBarConfiguration
 import androidx.navigation.ui.navigateUp
@@ -20,14 +32,14 @@ class MainActivity : AppCompatActivity() {
 
     private lateinit var appBarConfiguration: AppBarConfiguration
     private lateinit var binding: ActivityMainBinding
-    companion object {
-        var isCreatedSpeecher : Boolean = false
-        lateinit var textToSpeech : TextToSpeech
-    }
+    private lateinit var mainViewModel: MainViewModel
+    private lateinit var lpwLanguage: ListPopupWindow
+    private lateinit var languages: ArrayList<String>
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
         binding = ActivityMainBinding.inflate(layoutInflater)
+        mainViewModel = ViewModelProvider(this).get(MainViewModel::class.java)
         setContentView(binding.root)
 
 
@@ -52,20 +64,56 @@ class MainActivity : AppCompatActivity() {
         navView.setupWithNavController(navController)
 
         //Create text To Speech
-        textToSpeech = TextToSpeech(this, TextToSpeech.OnInitListener {
+        MainViewModel.textToSpeech = TextToSpeech(this, TextToSpeech.OnInitListener {
             if(it == TextToSpeech.SUCCESS){
-                isCreatedSpeecher = true
+                mainViewModel.locale.value = MainViewModel.textToSpeech.availableLanguages
             }
         })
 
+        createListPopupLanguage()
+
+        observeData()
         createAction()
+    }
+
+    private fun createListPopupLanguage() {
+        lpwLanguage = ListPopupWindow(this, null)
+        lpwLanguage.anchorView = binding.aclChoseLanguage
+        lpwLanguage.isModal = true
+    }
+
+    private fun observeData() {
+        mainViewModel.speechRate.observe(this){
+            binding.sldSpeechRate.value = it
+            binding.txvSpeechRate.text = it.toString()
+            MainViewModel.textToSpeech.setSpeechRate(it)
+        }
+
+        mainViewModel.locale.observe(this){
+            languages = it.map {
+                it.displayName
+            } as ArrayList<String>
+            languages.sort()
+            val adapter = ArrayAdapter(this, R.layout.list_popup_window_item, languages)
+            lpwLanguage.setAdapter(adapter)
+        }
     }
 
     private fun createAction() {
         binding.sldSpeechRate.addOnChangeListener { slider, value, fromUser ->
-            val roundedValue = roundDecimal(value, 1);
-            textToSpeech.setSpeechRate(roundedValue)
-            binding.txvSpeechRate.setText(roundedValue.toString())
+            mainViewModel.setSpeechRate(value)
+        }
+
+        lpwLanguage.setOnItemClickListener { parent: AdapterView<*>?, view: View?, position: Int, id: Long ->
+            Toast.makeText(this, languages.get(position), Toast.LENGTH_SHORT).show()
+            lpwLanguage.dismiss()
+        }
+        binding.aclChoseLanguage.setOnClickListener {
+            if(lpwLanguage.isShowing){
+                lpwLanguage.dismiss()
+            } else {
+                lpwLanguage.show()
+            }
         }
     }
 
@@ -78,10 +126,5 @@ class MainActivity : AppCompatActivity() {
     override fun onSupportNavigateUp(): Boolean {
         val navController = findNavController(R.id.nav_host_fragment_content_main)
         return navController.navigateUp(appBarConfiguration) || super.onSupportNavigateUp()
-    }
-
-    fun roundDecimal(number: Float, decimalPlaces: Int): Float {
-        val factor = Math.pow(10.0, decimalPlaces.toDouble()).toFloat()
-        return (Math.round(number * factor) / factor)
     }
 }

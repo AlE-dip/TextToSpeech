@@ -12,6 +12,7 @@
     <string name="menu_slideshow">Slideshow</string>
     <string name="menu_setting">Setting</string>
     <string name="speechRate">Speech rate</string>
+    <string name="chose_languages">Chose languages</string>
     <!-- TODO: Remove or change this placeholder text -->
     <string name="hello_blank_fragment">Hello blank fragment</string>
 </resources>

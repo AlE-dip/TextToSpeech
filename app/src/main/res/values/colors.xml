@@ -28,5 +28,6 @@
     <color name="brown">#795548</color>
     <color name="grey">#9E9E9E</color>
     <color name="gray">#808080</color>
+    <color name="light_grey">#C8C8C8</color>
     <color name="blue_grey">#607D8B</color>
 </resources>

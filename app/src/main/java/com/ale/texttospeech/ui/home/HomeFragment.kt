@@ -11,6 +11,7 @@ import android.view.inputmethod.InputMethodManager
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.ViewModelProvider
 import com.ale.texttospeech.MainActivity
+import com.ale.texttospeech.MainViewModel
 import com.ale.texttospeech.databinding.FragmentHomeBinding
 import java.util.Locale
 
@@ -53,7 +54,7 @@ class HomeFragment : Fragment() {
 
         binding.fabRun.setOnClickListener {
             var text = binding.edtMain.text.toString()
-            MainActivity.textToSpeech.speak(text, TextToSpeech.QUEUE_ADD, null, null)
+            MainViewModel.textToSpeech.speak(text, TextToSpeech.QUEUE_ADD, null, null)
         }
     }
 
