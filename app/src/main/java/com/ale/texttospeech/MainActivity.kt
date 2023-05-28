@@ -33,8 +33,6 @@ class MainActivity : AppCompatActivity() {
     private lateinit var appBarConfiguration: AppBarConfiguration
     private lateinit var binding: ActivityMainBinding
     private lateinit var mainViewModel: MainViewModel
-    private lateinit var lpwLanguage: ListPopupWindow
-    private lateinit var languages: ArrayList<String>
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
@@ -66,21 +64,14 @@ class MainActivity : AppCompatActivity() {
         //Create text To Speech
         MainViewModel.textToSpeech = TextToSpeech(this, TextToSpeech.OnInitListener {
             if(it == TextToSpeech.SUCCESS){
-                mainViewModel.locale.value = MainViewModel.textToSpeech.availableLanguages
+                mainViewModel.locales.value = MainViewModel.textToSpeech.availableLanguages
             }
         })
-
-        createListPopupLanguage()
 
         observeData()
         createAction()
     }
 
-    private fun createListPopupLanguage() {
-        lpwLanguage = ListPopupWindow(this, null)
-        lpwLanguage.anchorView = binding.aclChoseLanguage
-        lpwLanguage.isModal = true
-    }
 
     private fun observeData() {
         mainViewModel.speechRate.observe(this){
@@ -89,13 +80,19 @@ class MainActivity : AppCompatActivity() {
             MainViewModel.textToSpeech.setSpeechRate(it)
         }
 
-        mainViewModel.locale.observe(this){
-            languages = it.map {
+        mainViewModel.locales.observe(this){
+            mainViewModel.languages.value = it.map {
                 it.displayName
             } as ArrayList<String>
-            languages.sort()
-            val adapter = ArrayAdapter(this, R.layout.list_popup_window_item, languages)
-            lpwLanguage.setAdapter(adapter)
+            mainViewModel.languages.value!!.sort()
+            val adapter = ArrayAdapter(this, android.R.layout.simple_dropdown_item_1line, mainViewModel.languages.value!!)
+            binding.aclChoseLanguage.setAdapter(adapter)
+            mainViewModel.choseLocale(MainViewModel.textToSpeech.language.isO3Country, MainViewModel.textToSpeech.language.isO3Language)
+        }
+
+        mainViewModel.choseLocale.observe(this){
+            binding.aclChoseLanguage.setText(it.displayName, false)
+            MainViewModel.textToSpeech.language = it
         }
     }
 
@@ -103,17 +100,14 @@ class MainActivity : AppCompatActivity() {
         binding.sldSpeechRate.addOnChangeListener { slider, value, fromUser ->
             mainViewModel.setSpeechRate(value)
         }
-
-        lpwLanguage.setOnItemClickListener { parent: AdapterView<*>?, view: View?, position: Int, id: Long ->
-            Toast.makeText(this, languages.get(position), Toast.LENGTH_SHORT).show()
-            lpwLanguage.dismiss()
-        }
         binding.aclChoseLanguage.setOnClickListener {
-            if(lpwLanguage.isShowing){
-                lpwLanguage.dismiss()
-            } else {
-                lpwLanguage.show()
+            if(!binding.aclChoseLanguage.isPopupShowing) {
+                binding.aclChoseLanguage.clearFocus()
             }
+        }
+        binding.aclChoseLanguage.setOnItemClickListener { parent, view, position, id ->
+            mainViewModel.choseLocale(mainViewModel.languages.value!!.get(position))
+            binding.aclChoseLanguage.clearFocus()
         }
     }
 
