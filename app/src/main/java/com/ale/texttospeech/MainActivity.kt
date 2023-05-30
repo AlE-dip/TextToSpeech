@@ -61,38 +61,74 @@ class MainActivity : AppCompatActivity() {
         setupActionBarWithNavController(navController, appBarConfiguration)
         navView.setupWithNavController(navController)
 
-        //Create text To Speech
-        MainViewModel.textToSpeech = TextToSpeech(this, TextToSpeech.OnInitListener {
-            if(it == TextToSpeech.SUCCESS){
-                mainViewModel.locales.value = MainViewModel.textToSpeech.availableLanguages
-            }
-        })
-
         observeData()
         createAction()
+
+        //Create text To Speech
+        MainViewModel.textToSpeech = TextToSpeech(this, TextToSpeech.OnInitListener {
+            if (it == TextToSpeech.SUCCESS) {
+                mainViewModel.locales.value = MainViewModel.textToSpeech.availableLanguages
+                mainViewModel.choseDefaultLocale(
+                    MainViewModel.textToSpeech.language?.isO3Country,
+                    MainViewModel.textToSpeech.language?.isO3Language
+                )
+                MainViewModel.textToSpeech.setSpeechRate(mainViewModel.speechRate.value!!)
+                MainViewModel.textToSpeech.setPitch(mainViewModel.pitch.value!!)
+                MainViewModel.textToSpeech.language = mainViewModel.choseLocale.value
+                MainViewModel.textToSpeech.voice = mainViewModel.choseVoice.value
+            }
+        })
     }
 
 
     private fun observeData() {
-        mainViewModel.speechRate.observe(this){
+        mainViewModel.speechRate.observe(this) {
             binding.sldSpeechRate.value = it
             binding.txvSpeechRate.text = it.toString()
-            MainViewModel.textToSpeech.setSpeechRate(it)
+            MainViewModel.textToSpeech?.setSpeechRate(it)
         }
 
-        mainViewModel.locales.observe(this){
+        mainViewModel.pitch.observe(this) {
+            binding.sldPitch.value = it
+            binding.txvPitch.text = it.toString()
+            MainViewModel.textToSpeech?.setPitch(it)
+        }
+
+        mainViewModel.locales.observe(this) {
             mainViewModel.languages.value = it.map {
                 it.displayName
             } as ArrayList<String>
             mainViewModel.languages.value!!.sort()
-            val adapter = ArrayAdapter(this, android.R.layout.simple_dropdown_item_1line, mainViewModel.languages.value!!)
+            val adapter = ArrayAdapter(
+                this,
+                android.R.layout.simple_dropdown_item_1line,
+                mainViewModel.languages.value!!
+            )
             binding.aclChoseLanguage.setAdapter(adapter)
-            mainViewModel.choseLocale(MainViewModel.textToSpeech.language.isO3Country, MainViewModel.textToSpeech.language.isO3Language)
         }
 
-        mainViewModel.choseLocale.observe(this){
+        mainViewModel.choseLocale.observe(this) {
             binding.aclChoseLanguage.setText(it.displayName, false)
-            MainViewModel.textToSpeech.language = it
+            MainViewModel.textToSpeech?.language = it
+            mainViewModel.setVoices(MainViewModel.textToSpeech?.voices)
+        }
+
+        mainViewModel.voices.observe(this) {
+            mainViewModel.voiceNames.value = it.map {
+                it.name
+            } as ArrayList<String>
+            mainViewModel.voiceNames.value!!.sort()
+            val adapter = ArrayAdapter(
+                this,
+                android.R.layout.simple_dropdown_item_1line,
+                mainViewModel.voiceNames.value!!
+            )
+            binding.aclChoseVoice.setAdapter(adapter)
+        }
+
+        mainViewModel.choseVoice.observe(this) {
+            MainViewModel.textToSpeech?.voice = it
+            binding.aclChoseVoice.setText(it.name, false)
         }
     }
 
@@ -100,14 +136,25 @@ class MainActivity : AppCompatActivity() {
         binding.sldSpeechRate.addOnChangeListener { slider, value, fromUser ->
             mainViewModel.setSpeechRate(value)
         }
+
+        binding.sldPitch.addOnChangeListener { slider, value, fromUser ->
+            mainViewModel.setPitch(value)
+        }
+
         binding.aclChoseLanguage.setOnClickListener {
-            if(!binding.aclChoseLanguage.isPopupShowing) {
+            if (!binding.aclChoseLanguage.isPopupShowing) {
                 binding.aclChoseLanguage.clearFocus()
             }
         }
+
         binding.aclChoseLanguage.setOnItemClickListener { parent, view, position, id ->
             mainViewModel.choseLocale(mainViewModel.languages.value!!.get(position))
             binding.aclChoseLanguage.clearFocus()
+        }
+
+        binding.aclChoseVoice.setOnItemClickListener { parent, view, position, id ->
+            mainViewModel.choseVoice(mainViewModel.voiceNames.value!!.get(position))
+            binding.aclChoseVoice.clearFocus()
         }
     }
 
