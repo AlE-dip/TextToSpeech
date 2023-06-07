@@ -1,14 +1,15 @@
 package com.ale.texttospeech.ui.home
 
+import android.app.DownloadManager
+import android.content.ContentResolver
 import android.content.Context
-import android.graphics.Color
-import android.opengl.Visibility
+import android.content.Context.DOWNLOAD_SERVICE
+import android.content.Intent
+import android.net.Uri
 import android.os.Bundle
-import android.provider.Contacts
+import android.os.ParcelFileDescriptor
 import android.speech.tts.TextToSpeech
 import android.speech.tts.UtteranceProgressListener
-import android.speech.tts.Voice
-import android.text.Editable
 import android.text.Spannable
 import android.text.SpannableString
 import android.text.style.ForegroundColorSpan
@@ -18,23 +19,27 @@ import android.view.View
 import android.view.ViewGroup
 import android.view.inputmethod.InputMethodManager
 import android.widget.Toast
-import androidx.core.view.isVisible
+import androidx.activity.result.ActivityResultLauncher
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.appcompat.app.AppCompatActivity
+import androidx.core.content.ContextCompat
 import androidx.fragment.app.Fragment
+import androidx.fragment.app.activityViewModels
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.get
-import com.ale.texttospeech.MainActivity
 import com.ale.texttospeech.MainViewModel
 import com.ale.texttospeech.R
 import com.ale.texttospeech.databinding.FragmentHomeBinding
-import java.lang.StringBuilder
-import java.util.Locale
-import java.util.Objects
+import com.google.android.material.snackbar.Snackbar
+import java.io.File
 
 
 class HomeFragment : Fragment() {
 
     private var _binding: FragmentHomeBinding? = null
     private lateinit var homeViewModel: HomeViewModel
+    private lateinit var mainViewModel: MainViewModel
+    private lateinit var saveMp3Launcher: ActivityResultLauncher<Intent>
     private var tag: String = "TAG_TTS"
 
     // This property is only valid between onCreateView and
@@ -45,17 +50,16 @@ class HomeFragment : Fragment() {
         inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?
     ): View {
         homeViewModel = ViewModelProvider(this).get(HomeViewModel::class.java)
-
+        mainViewModel = activity.run { ViewModelProvider(this!!).get(MainViewModel::class.java) }
 
         _binding = FragmentHomeBinding.inflate(inflater, container, false)
         val root: View = binding.root
-
+        registerSaveMp3Result()
         return root
     }
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
-
         observeData()
         createAction()
     }
@@ -68,7 +72,10 @@ class HomeFragment : Fragment() {
                 binding.fabRun.setOnClickListener {
                     if (MainViewModel.textToSpeech.isSpeaking) {
                         MainViewModel.textToSpeech.stop()
-                        enableEditText(homeViewModel.text.value, homeViewModel.indexCursor.value?:0)
+                        enableEditText(
+                            homeViewModel.text.value,
+                            homeViewModel.indexCursor.value ?: 0
+                        )
                     } else {
                         homeViewModel.isFabRun.value = false
                     }
@@ -80,15 +87,21 @@ class HomeFragment : Fragment() {
                     homeViewModel.indexCursor.value = binding.edtMain.selectionStart
                     homeViewModel.text.value = binding.edtMain.text.toString()
                     MainViewModel.textToSpeech.setOnUtteranceProgressListener(
-                        utteranceProgressListener(homeViewModel.indexCursor.value?:0)
+                        utteranceProgressListener(homeViewModel.indexCursor.value ?: 0)
                     )
-                    MainViewModel.textToSpeech.speak(
-                        homeViewModel.text.value?.substring(homeViewModel.indexCursor.value?:0),
-                        TextToSpeech.QUEUE_ADD,
-                        null,
-                        "new"
-                    )
-                    homeViewModel.isFabRun.value = true
+                    var text = homeViewModel.text.value?.substring(homeViewModel.indexCursor.value ?: 0)
+                    if(text?.trim()?.length == 0){
+                        putSnackbar(getString(R.string.put_cursor))
+                        homeViewModel.isFabRun.value = false
+                    } else {
+                        MainViewModel.textToSpeech.speak(
+                            text,
+                            TextToSpeech.QUEUE_ADD,
+                            null,
+                            "new"
+                        )
+                        homeViewModel.isFabRun.value = true
+                    }
                 }
             }
         }
@@ -98,6 +111,67 @@ class HomeFragment : Fragment() {
         binding.root.setOnClickListener {
             showKeyboard()
         }
+
+        mainViewModel.onExportMp3Listener = object : MainViewModel.OnExportMp3Listener {
+            override fun export() {
+                var text = binding.edtMain.text.toString().trim()
+                if (text.length != 0) {
+                    saveMp3FileToStorage(binding.edtMain.text.toString())
+                } else {
+                    putSnackbar(getString(R.string.input_text))
+                }
+            }
+        }
+    }
+
+    fun saveMp3FileToStorage(text: String) {
+        val intent = Intent(Intent.ACTION_CREATE_DOCUMENT)
+        intent.addCategory(Intent.CATEGORY_OPENABLE)
+        intent.type = "audio/mpeg" // Set the MIME type to audio/mpeg for MP3 files
+        intent.putExtra(
+            Intent.EXTRA_TITLE,
+            (text + ".mp3").takeIf { it.length < 24 } ?: text.substring(0, 20) + ".mp3"
+        ) // Set the desired file name with .mp3 extension
+        saveMp3Launcher.launch(intent)
+    }
+
+    fun registerSaveMp3Result() {
+        saveMp3Launcher =
+            registerForActivityResult(ActivityResultContracts.StartActivityForResult()) {
+                if (it.resultCode == AppCompatActivity.RESULT_OK) {
+                    it.data?.data?.let {
+                        var descriptor = uriToParcelFileDescriptor(context, it)
+                        descriptor?.let { des ->
+                            var bundle = Bundle()
+                            MainViewModel.textToSpeech.synthesizeToFile(
+                                binding.edtMain.text.toString(), bundle, des, "new"
+                            )
+                            Toast.makeText(context, "dsdsd", Toast.LENGTH_SHORT).show()
+                        }
+                    }
+                }
+            }
+    }
+
+    fun uriToParcelFileDescriptor(context: Context?, uri: Uri): ParcelFileDescriptor? {
+        val contentResolver: ContentResolver? = context?.contentResolver
+        return try {
+            contentResolver?.openFileDescriptor(uri, "w")
+        } catch (e: Exception) {
+            e.printStackTrace()
+            null
+        }
+    }
+
+    fun putSnackbar(message: String) {
+        val snackbar = Snackbar.make(binding.fabRun, message, Snackbar.LENGTH_LONG).setAction(
+            "Action", null
+        )
+        context?.let {
+            var drawable = ContextCompat.getDrawable(it, R.drawable.snackbar_background)
+            snackbar.view.background = drawable
+        }
+        snackbar.show()
     }
 
     fun utteranceProgressListener(indexCursor: Int): UtteranceProgressListener {

@@ -2,6 +2,7 @@ package com.ale.texttospeech
 
 import android.speech.tts.TextToSpeech
 import android.speech.tts.Voice
+import android.widget.EditText
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
@@ -13,7 +14,7 @@ class MainViewModel: ViewModel() {
     companion object {
         lateinit var textToSpeech: TextToSpeech
     }
-
+    var onExportMp3Listener: OnExportMp3Listener? = null
 
     var locales = MutableLiveData<Set<Locale>>()
     var choseLocale = MutableLiveData<Locale>()
@@ -23,8 +24,6 @@ class MainViewModel: ViewModel() {
     var voiceNames = MutableLiveData<ArrayList<String>>()
     var speechRate = MutableLiveData<Float>().apply { value = 1.0f }
     var pitch = MutableLiveData<Float>().apply { value = 1.0f }
-
-
 
     fun setSpeechRate(it: Float){
         speechRate.value = roundDecimal(it)
@@ -81,5 +80,9 @@ class MainViewModel: ViewModel() {
                 return
             }
         }
+    }
+
+    interface OnExportMp3Listener {
+        fun export()
     }
 }
