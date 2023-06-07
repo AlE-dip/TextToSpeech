@@ -19,140 +19,144 @@
         android:layout_width="wrap_content"
         android:layout_height="match_parent"
         android:layout_gravity="start"
-        app:headerLayout="@layout/nav_header_main"
         app:itemIconTint="@color/gray"
-        app:itemTextColor="@color/gray"
-        app:menu="@menu/activity_main_drawer">
+        app:itemTextColor="@color/gray">
 
-        <LinearLayout
+        <androidx.core.widget.NestedScrollView
             android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_gravity="top"
-            android:layout_marginTop="300dp"
-            android:orientation="vertical">
-
-            <ImageView
-                android:layout_width="match_parent"
-                android:layout_height="1dp"
-                android:src="@color/light_grey" />
-
-            <com.google.android.material.textfield.TextInputLayout
-                android:layout_marginTop="10dp"
-                style="@style/Widget.MaterialComponents.TextInputLayout.FilledBox.ExposedDropdownMenu"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                app:boxStrokeWidth="0dp"
-                android:hint="@string/chose_language">
-
-                <AutoCompleteTextView
-                    android:id="@+id/acl_chose_language"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:backgroundTint="@color/white"
-                    android:textColor="@color/gray"
-                    android:inputType="none" />
-
-            </com.google.android.material.textfield.TextInputLayout>
-
-            <com.google.android.material.textfield.TextInputLayout
-                android:layout_marginTop="10dp"
-                style="@style/Widget.MaterialComponents.TextInputLayout.FilledBox.ExposedDropdownMenu"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                app:boxStrokeWidth="0dp"
-                android:hint="@string/chose_voice">
-
-                <AutoCompleteTextView
-                    android:id="@+id/acl_chose_voice"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:backgroundTint="@color/white"
-                    android:textColor="@color/gray"
-                    android:inputType="none" />
-
-            </com.google.android.material.textfield.TextInputLayout>
+            android:layout_height="match_parent">
 
             <LinearLayout
-                android:paddingLeft="5dp"
-                android:paddingRight="5dp"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="20dp"
+                android:layout_gravity="top"
                 android:orientation="vertical">
 
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_marginLeft="10dp"
-                    android:text="@string/speechRate" />
+                <include layout="@layout/nav_header_main"/>
 
-                <LinearLayout
+                <ImageView
                     android:layout_width="match_parent"
-                    android:layout_height="wrap_content">
+                    android:layout_height="1dp"
+                    android:src="@color/light_grey" />
 
-                    <TextView
-                        android:id="@+id/txv_speech_rate"
-                        android:layout_width="30dp"
-                        android:layout_height="wrap_content"
-                        android:layout_gravity="center"
-                        android:layout_margin="10dp"
-                        android:text="1.0"
-                        android:textColor="@color/gray" />
+                <com.google.android.material.textfield.TextInputLayout
+                    android:layout_marginTop="10dp"
+                    style="@style/Widget.MaterialComponents.TextInputLayout.FilledBox.ExposedDropdownMenu"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    app:boxStrokeWidth="0dp"
+                    android:hint="@string/chose_language">
 
-                    <com.google.android.material.slider.Slider
-                        android:id="@+id/sld_speech_rate"
+                    <AutoCompleteTextView
+                        android:id="@+id/acl_chose_language"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:stepSize="0.1"
-                        android:valueFrom="0.1"
-                        android:valueTo="3.0"
-                        app:labelBehavior="gone" />
+                        android:backgroundTint="@color/white"
+                        android:textColor="@color/gray"
+                        android:inputType="none" />
+
+                </com.google.android.material.textfield.TextInputLayout>
+
+                <com.google.android.material.textfield.TextInputLayout
+                    android:layout_marginTop="10dp"
+                    style="@style/Widget.MaterialComponents.TextInputLayout.FilledBox.ExposedDropdownMenu"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    app:boxStrokeWidth="0dp"
+                    android:hint="@string/chose_voice">
+
+                    <AutoCompleteTextView
+                        android:id="@+id/acl_chose_voice"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:backgroundTint="@color/white"
+                        android:textColor="@color/gray"
+                        android:inputType="none" />
+
+                </com.google.android.material.textfield.TextInputLayout>
+
+                <LinearLayout
+                    android:paddingLeft="5dp"
+                    android:paddingRight="5dp"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="20dp"
+                    android:orientation="vertical">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginLeft="10dp"
+                        android:text="@string/speechRate" />
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content">
+
+                        <TextView
+                            android:id="@+id/txv_speech_rate"
+                            android:layout_width="30dp"
+                            android:layout_height="wrap_content"
+                            android:layout_gravity="center"
+                            android:layout_margin="10dp"
+                            android:text="1.0"
+                            android:textColor="@color/gray" />
+
+                        <com.google.android.material.slider.Slider
+                            android:id="@+id/sld_speech_rate"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:stepSize="0.1"
+                            android:valueFrom="0.1"
+                            android:valueTo="3.0"
+                            app:labelBehavior="gone" />
+
+                    </LinearLayout>
+
+                </LinearLayout>
+
+                <LinearLayout
+                    android:paddingLeft="5dp"
+                    android:paddingRight="5dp"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="10dp"
+                    android:orientation="vertical">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginLeft="10dp"
+                        android:text="@string/speechRate" />
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content">
+
+                        <TextView
+                            android:id="@+id/txv_pitch"
+                            android:layout_width="30dp"
+                            android:layout_height="wrap_content"
+                            android:layout_gravity="center"
+                            android:layout_margin="10dp"
+                            android:text="1.0"
+                            android:textColor="@color/gray" />
+
+                        <com.google.android.material.slider.Slider
+                            android:id="@+id/sld_pitch"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:stepSize="0.1"
+                            android:valueFrom="0.1"
+                            android:valueTo="3.0"
+                            app:labelBehavior="gone" />
+
+                    </LinearLayout>
 
                 </LinearLayout>
 
             </LinearLayout>
 
-            <LinearLayout
-                android:paddingLeft="5dp"
-                android:paddingRight="5dp"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="10dp"
-                android:orientation="vertical">
-
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_marginLeft="10dp"
-                    android:text="@string/speechRate" />
-
-                <LinearLayout
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content">
-
-                    <TextView
-                        android:id="@+id/txv_pitch"
-                        android:layout_width="30dp"
-                        android:layout_height="wrap_content"
-                        android:layout_gravity="center"
-                        android:layout_margin="10dp"
-                        android:text="1.0"
-                        android:textColor="@color/gray" />
-
-                    <com.google.android.material.slider.Slider
-                        android:id="@+id/sld_pitch"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:stepSize="0.1"
-                        android:valueFrom="0.1"
-                        android:valueTo="3.0"
-                        app:labelBehavior="gone" />
-
-                </LinearLayout>
-
-            </LinearLayout>
-
-        </LinearLayout>
-
+        </androidx.core.widget.NestedScrollView>
     </com.google.android.material.navigation.NavigationView>
 </androidx.drawerlayout.widget.DrawerLayout>

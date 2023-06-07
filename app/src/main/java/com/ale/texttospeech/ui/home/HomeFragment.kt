@@ -61,15 +61,14 @@ class HomeFragment : Fragment() {
     }
 
     private fun observeData() {
-        var text = StringBuilder()
 
         homeViewModel.isFabRun.observe(viewLifecycleOwner) {
             if (it) {
                 binding.fabRun.setImageResource(R.drawable.pause)
                 binding.fabRun.setOnClickListener {
-                    if(MainViewModel.textToSpeech.isSpeaking){
+                    if (MainViewModel.textToSpeech.isSpeaking) {
                         MainViewModel.textToSpeech.stop()
-                        enableEditText(text.toString())
+                        enableEditText(homeViewModel.text.value, homeViewModel.indexCursor.value?:0)
                     } else {
                         homeViewModel.isFabRun.value = false
                     }
@@ -78,13 +77,16 @@ class HomeFragment : Fragment() {
             } else {
                 binding.fabRun.setImageResource(R.drawable.play)
                 binding.fabRun.setOnClickListener {
-                    text.clear()
-                    text.append(binding.edtMain.text.toString())
+                    homeViewModel.indexCursor.value = binding.edtMain.selectionStart
+                    homeViewModel.text.value = binding.edtMain.text.toString()
                     MainViewModel.textToSpeech.setOnUtteranceProgressListener(
-                        utteranceProgressListener(text.toString())
+                        utteranceProgressListener(homeViewModel.indexCursor.value?:0)
                     )
                     MainViewModel.textToSpeech.speak(
-                        text, TextToSpeech.QUEUE_ADD, null, "new"
+                        homeViewModel.text.value?.substring(homeViewModel.indexCursor.value?:0),
+                        TextToSpeech.QUEUE_ADD,
+                        null,
+                        "new"
                     )
                     homeViewModel.isFabRun.value = true
                 }
@@ -98,7 +100,7 @@ class HomeFragment : Fragment() {
         }
     }
 
-    fun utteranceProgressListener(text: String): UtteranceProgressListener {
+    fun utteranceProgressListener(indexCursor: Int): UtteranceProgressListener {
         return object : UtteranceProgressListener() {
             override fun onStart(utteranceId: String?) {
                 binding.root.post {
@@ -110,7 +112,7 @@ class HomeFragment : Fragment() {
             }
 
             override fun onDone(utteranceId: String?) {
-                enableEditText(text)
+                enableEditText(homeViewModel.text.value ?: "", indexCursor)
             }
 
             override fun onError(utteranceId: String?) {
@@ -119,10 +121,13 @@ class HomeFragment : Fragment() {
 
             override fun onRangeStart(utteranceId: String?, start: Int, end: Int, frame: Int) {
                 super.onRangeStart(utteranceId, start, end, frame)
-                val spannableString = SpannableString(text)
+                val spannableString = SpannableString(homeViewModel.text.value)
                 val colorSpan = ForegroundColorSpan(resources.getColor(R.color.light_blue))
                 spannableString.setSpan(
-                    colorSpan, start, end, Spannable.SPAN_EXCLUSIVE_EXCLUSIVE
+                    colorSpan,
+                    indexCursor + start,
+                    indexCursor + end,
+                    Spannable.SPAN_EXCLUSIVE_EXCLUSIVE
                 )
                 binding.edtMain.post {
                     binding.edtMain.setText(spannableString)
@@ -131,11 +136,12 @@ class HomeFragment : Fragment() {
         }
     }
 
-    fun enableEditText(text: String){
+    fun enableEditText(text: String?, indexCursor: Int) {
         binding.root.post {
             binding.root.isEnabled = true
             binding.edtMain.isEnabled = true
             binding.edtMain.setText(SpannableString(text))
+            binding.edtMain.setSelection(indexCursor)
             homeViewModel.isFabRun.value = false
             Log.d(tag, "utterance done")
         }

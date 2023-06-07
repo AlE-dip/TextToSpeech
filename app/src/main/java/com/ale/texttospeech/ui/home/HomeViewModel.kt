@@ -8,4 +8,6 @@ import java.util.regex.Pattern
 class HomeViewModel : ViewModel() {
 
     var isFabRun = MutableLiveData<Boolean>().apply { value = false }
+    var text = MutableLiveData<String>()
+    var indexCursor = MutableLiveData<Int>().apply { value = 0 }
 }

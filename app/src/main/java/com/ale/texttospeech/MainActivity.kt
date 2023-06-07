@@ -156,6 +156,12 @@ class MainActivity : AppCompatActivity() {
             mainViewModel.choseVoice(mainViewModel.voiceNames.value!!.get(position))
             binding.aclChoseVoice.clearFocus()
         }
+
+        binding.aclChoseVoice.setOnClickListener {
+            if (!binding.aclChoseVoice.isPopupShowing) {
+                binding.aclChoseVoice.clearFocus()
+            }
+        }
     }
 
     override fun onCreateOptionsMenu(menu: Menu): Boolean {
