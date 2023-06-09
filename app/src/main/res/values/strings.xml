@@ -1,22 +1,18 @@
 <resources>
-    <string name="app_name">Text to Speech</string>
-    <string name="navigation_drawer_open">Open navigation drawer</string>
-    <string name="navigation_drawer_close">Close navigation drawer</string>
-    <string name="nav_header_title">Android Studio</string>
-    <string name="nav_header_subtitle">android.studio@android.com</string>
-    <string name="nav_header_desc">Navigation header</string>
-    <string name="action_export_file">Export mp3</string>
-
-    <string name="menu_home">Home</string>
-    <string name="menu_gallery">Gallery</string>
-    <string name="menu_slideshow">Slideshow</string>
-    <string name="menu_setting">Setting</string>
+    <string name="app_name">Text To Speech Lite</string>
+    <string name="nav_header_subtitle">leabc123abc@gmail.com</string>
+    <string name="action_export_file">Export file audio</string>
     <string name="speechRate">Speech rate</string>
     <string name="chose_language">Chose language</string>
     <string name="chose_voice">Chose voice</string>
     <string name="input_text">Input text!</string>
     <string name="put_cursor">Move the cursor to the desired position to speak!</string>
-
-    <!-- TODO: Remove or change this placeholder text -->
-    <string name="hello_blank_fragment">Hello blank fragment</string>
+    <string name="processing">Processing: </string>
+    <string name="exported_audio">Exported audio</string>
+    <string name="cancel">Cancel</string>
+    <string name="close">Close</string>
+    <string name="open">Open</string>
+    <string name="save">Save</string>
+    <string name="error">Error!!!</string>
+    <string name="name_file">Name file</string>
 </resources>

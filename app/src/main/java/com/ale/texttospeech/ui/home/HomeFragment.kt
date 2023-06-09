@@ -1,13 +1,10 @@
 package com.ale.texttospeech.ui.home
 
-import android.app.DownloadManager
-import android.content.ContentResolver
 import android.content.Context
-import android.content.Context.DOWNLOAD_SERVICE
 import android.content.Intent
 import android.net.Uri
 import android.os.Bundle
-import android.os.ParcelFileDescriptor
+import android.os.Environment
 import android.speech.tts.TextToSpeech
 import android.speech.tts.UtteranceProgressListener
 import android.text.Spannable
@@ -16,26 +13,30 @@ import android.text.style.ForegroundColorSpan
 import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
+import android.view.View.VISIBLE
 import android.view.ViewGroup
 import android.view.inputmethod.InputMethodManager
-import android.widget.Toast
 import androidx.activity.result.ActivityResultLauncher
-import androidx.activity.result.contract.ActivityResultContracts
-import androidx.appcompat.app.AppCompatActivity
+import androidx.appcompat.app.AlertDialog
 import androidx.core.content.ContextCompat
+import androidx.core.content.FileProvider
+import androidx.core.net.toUri
 import androidx.fragment.app.Fragment
-import androidx.fragment.app.activityViewModels
 import androidx.lifecycle.ViewModelProvider
-import androidx.lifecycle.get
+import androidx.viewbinding.ViewBinding
 import com.ale.texttospeech.MainViewModel
 import com.ale.texttospeech.R
+import com.ale.texttospeech.databinding.FragmentDialogEnterNameBinding
+import com.ale.texttospeech.databinding.FragmentDialogMp3Binding
 import com.ale.texttospeech.databinding.FragmentHomeBinding
 import com.google.android.material.snackbar.Snackbar
 import java.io.File
+import kotlin.math.E
 
 
 class HomeFragment : Fragment() {
 
+    private var FOLDER_AUDIO: String = "Audio"
     private var _binding: FragmentHomeBinding? = null
     private lateinit var homeViewModel: HomeViewModel
     private lateinit var mainViewModel: MainViewModel
@@ -54,7 +55,6 @@ class HomeFragment : Fragment() {
 
         _binding = FragmentHomeBinding.inflate(inflater, container, false)
         val root: View = binding.root
-        registerSaveMp3Result()
         return root
     }
 
@@ -65,7 +65,6 @@ class HomeFragment : Fragment() {
     }
 
     private fun observeData() {
-
         homeViewModel.isFabRun.observe(viewLifecycleOwner) {
             if (it) {
                 binding.fabRun.setImageResource(R.drawable.pause)
@@ -87,10 +86,11 @@ class HomeFragment : Fragment() {
                     homeViewModel.indexCursor.value = binding.edtMain.selectionStart
                     homeViewModel.text.value = binding.edtMain.text.toString()
                     MainViewModel.textToSpeech.setOnUtteranceProgressListener(
-                        utteranceProgressListener(homeViewModel.indexCursor.value ?: 0)
+                        utteranceProgressSpeakListener(homeViewModel.indexCursor.value ?: 0)
                     )
-                    var text = homeViewModel.text.value?.substring(homeViewModel.indexCursor.value ?: 0)
-                    if(text?.trim()?.length == 0){
+                    var text =
+                        homeViewModel.text.value?.substring(homeViewModel.indexCursor.value ?: 0)
+                    if (text?.trim()?.length == 0) {
                         putSnackbar(getString(R.string.put_cursor))
                         homeViewModel.isFabRun.value = false
                     } else {
@@ -125,42 +125,85 @@ class HomeFragment : Fragment() {
     }
 
     fun saveMp3FileToStorage(text: String) {
-        val intent = Intent(Intent.ACTION_CREATE_DOCUMENT)
-        intent.addCategory(Intent.CATEGORY_OPENABLE)
-        intent.type = "audio/mpeg" // Set the MIME type to audio/mpeg for MP3 files
-        intent.putExtra(
-            Intent.EXTRA_TITLE,
-            (text + ".mp3").takeIf { it.length < 24 } ?: text.substring(0, 20) + ".mp3"
-        ) // Set the desired file name with .mp3 extension
-        saveMp3Launcher.launch(intent)
-    }
+        var dialogNameBinding = FragmentDialogEnterNameBinding.inflate(layoutInflater)
+        var dialog = showDialog(context, dialogNameBinding)
 
-    fun registerSaveMp3Result() {
-        saveMp3Launcher =
-            registerForActivityResult(ActivityResultContracts.StartActivityForResult()) {
-                if (it.resultCode == AppCompatActivity.RESULT_OK) {
-                    it.data?.data?.let {
-                        var descriptor = uriToParcelFileDescriptor(context, it)
-                        descriptor?.let { des ->
-                            var bundle = Bundle()
-                            MainViewModel.textToSpeech.synthesizeToFile(
-                                binding.edtMain.text.toString(), bundle, des, "new"
-                            )
-                            Toast.makeText(context, "dsdsd", Toast.LENGTH_SHORT).show()
-                        }
-                    }
-                }
-            }
-    }
+        dialogNameBinding.edtName.setText((text).takeIf { it.length < 30 } ?: text.substring(0, 30))
 
-    fun uriToParcelFileDescriptor(context: Context?, uri: Uri): ParcelFileDescriptor? {
-        val contentResolver: ContentResolver? = context?.contentResolver
-        return try {
-            contentResolver?.openFileDescriptor(uri, "w")
-        } catch (e: Exception) {
-            e.printStackTrace()
-            null
+        dialogNameBinding.btnClose.setOnClickListener {
+            dialog?.cancel()
         }
+
+        dialogNameBinding.btnSave.setOnClickListener {
+            val name = dialogNameBinding.edtName.text.toString().trim()
+            if (name.length > 0) {
+                var root =
+                    Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_MUSIC)
+                var folder = File(root, FOLDER_AUDIO)
+                if (!folder.exists()) {
+                    folder.mkdir()
+                }
+                var file = File(folder, name + ".mp3")
+                if (file.exists()) {
+                    file.delete()
+                }
+                showDialogExportMp3(binding.edtMain.text?.length!!, file)
+                MainViewModel.textToSpeech.synthesizeToFile(
+                    binding.edtMain.text.toString(), null, file, "new"
+                )
+                dialog?.cancel()
+            }
+        }
+
+        dialog?.show()
+    }
+
+    private fun showDialogExportMp3(length: Int, file: File) {
+        val dialogMp3Binding = FragmentDialogMp3Binding.inflate(layoutInflater)
+        var dialog = showDialog(context, dialogMp3Binding)
+
+        dialogMp3Binding.btnCancel.setOnClickListener {
+            MainViewModel.textToSpeech.stop()
+            if (file.exists()) {
+                file.delete()
+            }
+        }
+
+        dialogMp3Binding.btnClose.setOnClickListener {
+            dialog?.cancel()
+        }
+
+        dialogMp3Binding.btnOpen.setOnClickListener {
+
+            val fileUri = File(
+                Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_MUSIC),
+                FOLDER_AUDIO
+            ).toUri()
+
+            val intent = Intent(Intent.ACTION_VIEW)
+            intent.setDataAndType(fileUri, "resource/folder")
+            intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+            startActivity(intent)
+        }
+
+        MainViewModel.textToSpeech.setOnUtteranceProgressListener(
+            utteranceProgressExportAudioListener(dialogMp3Binding, length)
+        )
+
+        dialog?.show()
+    }
+
+    fun showDialog(context: Context?, viewBinding: ViewBinding): AlertDialog? {
+        context?.let {
+            val builder: AlertDialog.Builder = AlertDialog.Builder(context)
+            builder.setTitle(R.string.action_export_file)
+            builder.setView(viewBinding.root)
+
+            val dialog: AlertDialog = builder.create()
+            dialog.setCanceledOnTouchOutside(false)
+            return dialog
+        }
+        return null
     }
 
     fun putSnackbar(message: String) {
@@ -174,7 +217,7 @@ class HomeFragment : Fragment() {
         snackbar.show()
     }
 
-    fun utteranceProgressListener(indexCursor: Int): UtteranceProgressListener {
+    fun utteranceProgressSpeakListener(indexCursor: Int): UtteranceProgressListener {
         return object : UtteranceProgressListener() {
             override fun onStart(utteranceId: String?) {
                 binding.root.post {
@@ -190,7 +233,7 @@ class HomeFragment : Fragment() {
             }
 
             override fun onError(utteranceId: String?) {
-                Log.d(tag, "utterance error");
+                putSnackbar(getString(R.string.error))
             }
 
             override fun onRangeStart(utteranceId: String?, start: Int, end: Int, frame: Int) {
@@ -206,6 +249,39 @@ class HomeFragment : Fragment() {
                 binding.edtMain.post {
                     binding.edtMain.setText(spannableString)
                 }
+            }
+        }
+    }
+
+    fun utteranceProgressExportAudioListener(
+        dialogMp3Binding: FragmentDialogMp3Binding,
+        length: Int
+    ): UtteranceProgressListener {
+        return object : UtteranceProgressListener() {
+            override fun onStart(utteranceId: String?) {
+
+            }
+
+            override fun onDone(utteranceId: String?) {
+                dialogMp3Binding.pcsExportAudio.post {
+                    dialogMp3Binding.pcsExportAudio.progress = 100
+                    dialogMp3Binding.btnCancel.visibility = View.GONE
+                    dialogMp3Binding.btnClose.visibility = VISIBLE
+                    dialogMp3Binding.btnOpen.visibility = VISIBLE
+                }
+            }
+
+            override fun onError(utteranceId: String?) {
+                putSnackbar(getString(R.string.error))
+            }
+
+            override fun onRangeStart(utteranceId: String?, start: Int, end: Int, frame: Int) {
+                super.onRangeStart(utteranceId, start, end, frame)
+                dialogMp3Binding.pcsExportAudio.post {
+                    dialogMp3Binding.pcsExportAudio.progress = ((end * 100) / length!!)
+                }
+
+                Log.d(tag, "" + frame + "    " + start + "   " + end)
             }
         }
     }
