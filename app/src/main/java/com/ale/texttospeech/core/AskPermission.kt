@@ -9,7 +9,6 @@ import androidx.core.content.ContextCompat
 
 object AskPermission {
     const val REQUEST_FILE_CODE = 123
-    const val REQUEST_CAMERA_CODE = 124
 
     fun filePermission(activity: Activity): Boolean {
         return if (

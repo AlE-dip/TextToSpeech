@@ -67,8 +67,8 @@ class HomeFragment : Fragment() {
             if (it) {
                 binding.fabRun.setImageResource(R.drawable.pause)
                 binding.fabRun.setOnClickListener {
-                    if (MainViewModel.textToSpeech?.isSpeaking == true) {
-                        MainViewModel.textToSpeech?.stop()
+                    if (mainViewModel.textToSpeech.value?.isSpeaking == true) {
+                        mainViewModel.textToSpeech.value?.stop()
                         enableEditText(
                             homeViewModel.text.value,
                             homeViewModel.indexCursor.value ?: 0
@@ -76,14 +76,13 @@ class HomeFragment : Fragment() {
                     } else {
                         homeViewModel.isFabRun.value = false
                     }
-
                 }
             } else {
                 binding.fabRun.setImageResource(R.drawable.play)
                 binding.fabRun.setOnClickListener {
                     homeViewModel.indexCursor.value = binding.edtMain.selectionStart
                     homeViewModel.text.value = binding.edtMain.text.toString()
-                    MainViewModel.textToSpeech?.setOnUtteranceProgressListener(
+                    mainViewModel.textToSpeech.value?.setOnUtteranceProgressListener(
                         utteranceProgressSpeakListener(homeViewModel.indexCursor.value ?: 0)
                     )
                     var text =
@@ -92,7 +91,7 @@ class HomeFragment : Fragment() {
                         putSnackbar(getString(R.string.put_cursor))
                         homeViewModel.isFabRun.value = false
                     } else {
-                        MainViewModel.textToSpeech?.speak(
+                        mainViewModel.textToSpeech.value?.speak(
                             text,
                             TextToSpeech.QUEUE_ADD,
                             null,
@@ -116,6 +115,14 @@ class HomeFragment : Fragment() {
 
         mainViewModel.onExportMp3Listener = object : MainViewModel.OnExportMp3Listener {
             override fun export() {
+                if (mainViewModel.textToSpeech.value?.isSpeaking == true) {
+                    mainViewModel.textToSpeech.value?.stop()
+                    enableEditText(
+                        homeViewModel.text.value,
+                        homeViewModel.indexCursor.value ?: 0
+                    )
+                    homeViewModel.isFabRun.value = false
+                }
                 var text = binding.edtMain.text.toString().trim()
                 if (text.length != 0) {
                     saveMp3FileToStorage(binding.edtMain.text.toString())
@@ -149,7 +156,7 @@ class HomeFragment : Fragment() {
                     i++
                 }
                 showDialogExportMp3(binding.edtMain.text?.length!!, file)
-                MainViewModel.textToSpeech?.synthesizeToFile(
+                mainViewModel.textToSpeech.value?.synthesizeToFile(
                     binding.edtMain.text.toString(), null, file, "new"
                 )
                 dialog?.cancel()
@@ -164,7 +171,7 @@ class HomeFragment : Fragment() {
         var dialog = showDialog(context, dialogMp3Binding)
 
         dialogMp3Binding.btnCancel.setOnClickListener {
-            MainViewModel.textToSpeech?.stop()
+            mainViewModel.textToSpeech.value?.stop()
             if (file.exists()) {
                 file.delete()
             }
@@ -183,7 +190,7 @@ class HomeFragment : Fragment() {
             )
 
             val intent = Intent(Intent.ACTION_VIEW)
-            intent.setDataAndType(uri, "*/*")
+            intent.setDataAndType(uri, "audio/mp3")
             intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
             try {
                 startActivity(intent)
@@ -194,7 +201,7 @@ class HomeFragment : Fragment() {
             dialog?.cancel()
         }
 
-        MainViewModel.textToSpeech?.setOnUtteranceProgressListener(
+        mainViewModel.textToSpeech.value?.setOnUtteranceProgressListener(
             utteranceProgressExportAudioListener(dialogMp3Binding, length)
         )
 

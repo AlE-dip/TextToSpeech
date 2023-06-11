@@ -15,21 +15,21 @@ import kotlinx.coroutines.launch
 import java.util.Locale
 
 class MainViewModel : ViewModel() {
-    companion object {
-        var textToSpeech: TextToSpeech? = null
-    }
-
     var onExportMp3Listener: OnExportMp3Listener? = null
     var onUpdateTextListener: OnUpdateTextListener? = null
 
-    var setting = MutableLiveData<Setting>().apply { value = Setting(
-        1,
-        null,
-        null,
-        1f,
-        1f,
-        null
-    )}
+    var setting = MutableLiveData<Setting>().apply {
+        value = Setting(
+            1,
+            null,
+            null,
+            1f,
+            1f,
+            null
+        )
+    }
+
+    var textToSpeech = MutableLiveData<TextToSpeech>()
     var locales = MutableLiveData<Set<Locale>>()
     var choseLocale = MutableLiveData<Locale>()
     var languages = MutableLiveData<ArrayList<String>>()
@@ -50,9 +50,9 @@ class MainViewModel : ViewModel() {
 
     fun createSpeech(context: Context, settingViewModel: SettingViewModel) {
         settingViewModel.getAllSetting().observeOnce { settings ->
-            textToSpeech = TextToSpeech(context, TextToSpeech.OnInitListener {
+            textToSpeech.value = TextToSpeech(context, TextToSpeech.OnInitListener {
                 if (it == TextToSpeech.SUCCESS) {
-                    locales.value = textToSpeech?.availableLanguages
+                    locales.value = textToSpeech.value?.availableLanguages
                     if (settings == null || settings.size == 0) {
                         setDefaultSpeech(
                             setting.value!!
@@ -70,8 +70,8 @@ class MainViewModel : ViewModel() {
     }
 
     fun setDefaultSpeech(setting: Setting): Setting {
-        if(setting.language == null){
-            setting.language = localToString(textToSpeech?.language)
+        if (setting.language == null) {
+            setting.language = localToString(textToSpeech.value?.language)
         }
         choseDefaultLocale(setting.language)
         setSpeechRate(setting.speechRate)
@@ -120,7 +120,8 @@ class MainViewModel : ViewModel() {
     }
 
     fun setVoices(setVoices: Set<Voice>?) {
-        if (setVoices == null) return
+        if (setVoices == null || setVoices.size == 0) return
+        if(choseVoice.value?.locale?.toLanguageTag() == choseLocale.value?.toLanguageTag()) return
         var temp: ArrayList<Voice> = ArrayList()
         setVoices?.forEach {
             if (choseLocale.value?.toLanguageTag().equals(it.locale.toLanguageTag())) {

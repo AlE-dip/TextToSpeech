@@ -65,13 +65,13 @@ class MainActivity : AppCompatActivity() {
         mainViewModel.speechRate.observe(this) {
             binding.sldSpeechRate.value = it
             binding.txvSpeechRate.text = it.toString()
-            MainViewModel.textToSpeech?.setSpeechRate(it)
+            mainViewModel.textToSpeech.value?.setSpeechRate(it)
         }
 
         mainViewModel.pitch.observe(this) {
             binding.sldPitch.value = it
             binding.txvPitch.text = it.toString()
-            MainViewModel.textToSpeech?.setPitch(it)
+            mainViewModel.textToSpeech.value?.setPitch(it)
         }
 
         mainViewModel.locales.observe(this) {
@@ -87,8 +87,8 @@ class MainActivity : AppCompatActivity() {
 
         mainViewModel.choseLocale.observe(this) {
             binding.aclChoseLanguage.setText(it.displayName, false)
-            MainViewModel.textToSpeech?.language = it
-            mainViewModel.setVoices(MainViewModel.textToSpeech?.voices)
+            mainViewModel.textToSpeech.value?.language = it
+            mainViewModel.setVoices(mainViewModel.textToSpeech.value?.voices)
         }
 
         mainViewModel.voices.observe(this) {
@@ -103,7 +103,7 @@ class MainActivity : AppCompatActivity() {
         }
 
         mainViewModel.choseVoice.observe(this) {
-            MainViewModel.textToSpeech?.voice = it
+            mainViewModel.textToSpeech.value?.voice = it
             binding.aclChoseVoice.setText(it.name, false)
         }
     }
