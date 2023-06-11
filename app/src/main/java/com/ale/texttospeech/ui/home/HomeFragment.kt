@@ -2,7 +2,6 @@ package com.ale.texttospeech.ui.home
 
 import android.content.Context
 import android.content.Intent
-import android.net.Uri
 import android.os.Bundle
 import android.os.Environment
 import android.speech.tts.TextToSpeech
@@ -26,21 +25,20 @@ import androidx.lifecycle.ViewModelProvider
 import androidx.viewbinding.ViewBinding
 import com.ale.texttospeech.MainViewModel
 import com.ale.texttospeech.R
+import com.ale.texttospeech.SettingViewModel
 import com.ale.texttospeech.databinding.FragmentDialogEnterNameBinding
 import com.ale.texttospeech.databinding.FragmentDialogMp3Binding
 import com.ale.texttospeech.databinding.FragmentHomeBinding
 import com.google.android.material.snackbar.Snackbar
 import java.io.File
-import kotlin.math.E
+import java.lang.Exception
 
 
 class HomeFragment : Fragment() {
 
-    private var FOLDER_AUDIO: String = "Audio"
     private var _binding: FragmentHomeBinding? = null
     private lateinit var homeViewModel: HomeViewModel
     private lateinit var mainViewModel: MainViewModel
-    private lateinit var saveMp3Launcher: ActivityResultLauncher<Intent>
     private var tag: String = "TAG_TTS"
 
     // This property is only valid between onCreateView and
@@ -69,8 +67,8 @@ class HomeFragment : Fragment() {
             if (it) {
                 binding.fabRun.setImageResource(R.drawable.pause)
                 binding.fabRun.setOnClickListener {
-                    if (MainViewModel.textToSpeech.isSpeaking) {
-                        MainViewModel.textToSpeech.stop()
+                    if (MainViewModel.textToSpeech?.isSpeaking == true) {
+                        MainViewModel.textToSpeech?.stop()
                         enableEditText(
                             homeViewModel.text.value,
                             homeViewModel.indexCursor.value ?: 0
@@ -85,7 +83,7 @@ class HomeFragment : Fragment() {
                 binding.fabRun.setOnClickListener {
                     homeViewModel.indexCursor.value = binding.edtMain.selectionStart
                     homeViewModel.text.value = binding.edtMain.text.toString()
-                    MainViewModel.textToSpeech.setOnUtteranceProgressListener(
+                    MainViewModel.textToSpeech?.setOnUtteranceProgressListener(
                         utteranceProgressSpeakListener(homeViewModel.indexCursor.value ?: 0)
                     )
                     var text =
@@ -94,7 +92,7 @@ class HomeFragment : Fragment() {
                         putSnackbar(getString(R.string.put_cursor))
                         homeViewModel.isFabRun.value = false
                     } else {
-                        MainViewModel.textToSpeech.speak(
+                        MainViewModel.textToSpeech?.speak(
                             text,
                             TextToSpeech.QUEUE_ADD,
                             null,
@@ -104,6 +102,10 @@ class HomeFragment : Fragment() {
                     }
                 }
             }
+        }
+
+        mainViewModel.setting.observe(viewLifecycleOwner) {
+            binding.edtMain.setText(it.currentText)
         }
     }
 
@@ -137,18 +139,17 @@ class HomeFragment : Fragment() {
         dialogNameBinding.btnSave.setOnClickListener {
             val name = dialogNameBinding.edtName.text.toString().trim()
             if (name.length > 0) {
-                var root =
-                    Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_MUSIC)
-                var folder = File(root, FOLDER_AUDIO)
-                if (!folder.exists()) {
-                    folder.mkdir()
-                }
-                var file = File(folder, name + ".mp3")
-                if (file.exists()) {
-                    file.delete()
+                var root = Environment.getExternalStoragePublicDirectory(
+                    Environment.DIRECTORY_DOWNLOADS
+                )
+                var file = File(root, name + ".mp3")
+                var i = 1;
+                while (file.exists()){
+                    file = File(root, name + " (" + i + ").mp3")
+                    i++
                 }
                 showDialogExportMp3(binding.edtMain.text?.length!!, file)
-                MainViewModel.textToSpeech.synthesizeToFile(
+                MainViewModel.textToSpeech?.synthesizeToFile(
                     binding.edtMain.text.toString(), null, file, "new"
                 )
                 dialog?.cancel()
@@ -163,10 +164,11 @@ class HomeFragment : Fragment() {
         var dialog = showDialog(context, dialogMp3Binding)
 
         dialogMp3Binding.btnCancel.setOnClickListener {
-            MainViewModel.textToSpeech.stop()
+            MainViewModel.textToSpeech?.stop()
             if (file.exists()) {
                 file.delete()
             }
+            dialog?.cancel()
         }
 
         dialogMp3Binding.btnClose.setOnClickListener {
@@ -174,19 +176,25 @@ class HomeFragment : Fragment() {
         }
 
         dialogMp3Binding.btnOpen.setOnClickListener {
-
-            val fileUri = File(
-                Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_MUSIC),
-                FOLDER_AUDIO
-            ).toUri()
+            val uri = FileProvider.getUriForFile(
+                requireContext(),
+                requireContext().applicationContext.packageName + ".provider",
+                file
+            )
 
             val intent = Intent(Intent.ACTION_VIEW)
-            intent.setDataAndType(fileUri, "resource/folder")
+            intent.setDataAndType(uri, "*/*")
             intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
-            startActivity(intent)
+            try {
+                startActivity(intent)
+            } catch (ex: Exception){
+                putSnackbar(getString(R.string.error))
+            }
+
+            dialog?.cancel()
         }
 
-        MainViewModel.textToSpeech.setOnUtteranceProgressListener(
+        MainViewModel.textToSpeech?.setOnUtteranceProgressListener(
             utteranceProgressExportAudioListener(dialogMp3Binding, length)
         )
 
@@ -268,6 +276,12 @@ class HomeFragment : Fragment() {
                     dialogMp3Binding.btnCancel.visibility = View.GONE
                     dialogMp3Binding.btnClose.visibility = VISIBLE
                     dialogMp3Binding.btnOpen.visibility = VISIBLE
+                    var stringBuilder = StringBuffer()
+                    stringBuilder.append(getString(R.string.processing))
+                    stringBuilder.append(" " + length + "/" + length)
+                    stringBuilder.append("\n")
+                    stringBuilder.append(getString(R.string.directory))
+                    dialogMp3Binding.txtExportAudio.text = stringBuilder.toString()
                 }
             }
 
@@ -279,9 +293,10 @@ class HomeFragment : Fragment() {
                 super.onRangeStart(utteranceId, start, end, frame)
                 dialogMp3Binding.pcsExportAudio.post {
                     dialogMp3Binding.pcsExportAudio.progress = ((end * 100) / length!!)
+                    dialogMp3Binding.txtExportAudio.text =
+                        getString(R.string.processing) + " " + end + "/" + length
                 }
 
-                Log.d(tag, "" + frame + "    " + start + "   " + end)
             }
         }
     }
@@ -306,6 +321,11 @@ class HomeFragment : Fragment() {
         val imm = context?.getSystemService(Context.INPUT_METHOD_SERVICE) as InputMethodManager?
         binding.edtMain.requestFocus()
         imm?.showSoftInput(binding.edtMain, InputMethodManager.SHOW_IMPLICIT)
+    }
+
+    override fun onStop() {
+        super.onStop()
+        mainViewModel.onUpdateTextListener?.update(binding.edtMain.text.toString())
     }
 
     override fun onDestroyView() {

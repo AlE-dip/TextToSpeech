@@ -5,7 +5,7 @@
     <string name="speechRate">Speech rate</string>
     <string name="chose_language">Chose language</string>
     <string name="chose_voice">Chose voice</string>
-    <string name="input_text">Input text!</string>
+    <string name="input_text">Enter text!</string>
     <string name="put_cursor">Move the cursor to the desired position to speak!</string>
     <string name="processing">Processing: </string>
     <string name="exported_audio">Exported audio</string>
@@ -15,4 +15,5 @@
     <string name="save">Save</string>
     <string name="error">Error!!!</string>
     <string name="name_file">Name file</string>
+    <string name="directory">File path: /Download/*</string>
 </resources>

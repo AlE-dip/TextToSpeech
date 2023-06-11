@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Text To Speech Lite</string>
+    <string name="nav_header_subtitle">leabc123abc@gmail.com</string>
+    <string name="action_export_file">Xuất tập tin âm thanh</string>
+    <string name="speechRate">Tốc độ nói</string>
+    <string name="chose_language">Chọn ngôn ngữ</string>
+    <string name="chose_voice">Chọn giọng nói</string>
+    <string name="input_text">Nhập văn bản!</string>
+    <string name="put_cursor">Di chuyển con trỏ đến vị trí mong muốn để nói!</string>
+    <string name="processing">Đang xử lý:</string>
+    <string name="exported_audio">" Đã xuất âm thanh"</string>
+    <string name="cancel">Hủy</string>
+    <string name="close">Đóng</string>
+    <string name="open">Mở</string>
+    <string name="save">Lưu</string>
+    <string name="error">Lỗi!!!</string>
+    <string name="name_file">Tên tập tin</string>
+    <string name="directory">Đường dẫn tệp: /Download/*</string>
+</resources>

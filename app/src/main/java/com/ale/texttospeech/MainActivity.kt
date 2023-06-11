@@ -1,23 +1,12 @@
 package com.ale.texttospeech
 
-import android.app.Activity
-import android.content.ContentResolver
 import android.content.Context
-import android.content.Intent
-import android.media.MediaRecorder
-import android.net.Uri
 import android.os.Bundle
-import android.os.Environment
-import android.os.ParcelFileDescriptor
 import android.speech.tts.TextToSpeech
 import android.view.Menu
 import android.view.MenuItem
-import android.view.View
 import android.view.inputmethod.InputMethodManager
 import android.widget.ArrayAdapter
-import android.widget.Toast
-import androidx.activity.result.ActivityResultLauncher
-import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
 import androidx.drawerlayout.widget.DrawerLayout
 import androidx.lifecycle.ViewModelProvider
@@ -26,23 +15,27 @@ import androidx.navigation.ui.AppBarConfiguration
 import androidx.navigation.ui.navigateUp
 import androidx.navigation.ui.setupActionBarWithNavController
 import androidx.navigation.ui.setupWithNavController
+import com.ale.texttospeech.core.AskPermission
+import com.ale.texttospeech.core.database.Setting
 import com.ale.texttospeech.databinding.ActivityMainBinding
 import com.google.android.material.navigation.NavigationView
-import com.google.android.material.snackbar.Snackbar
-import java.io.File
-import java.io.IOException
 
 class MainActivity : AppCompatActivity() {
     private lateinit var appBarConfiguration: AppBarConfiguration
     private lateinit var binding: ActivityMainBinding
     private lateinit var mainViewModel: MainViewModel
+    private val settingViewModel: SettingViewModel by lazy {
+        ViewModelProvider(this, SettingViewModel.SettingViewModelFactory(application)).get(
+            SettingViewModel::class.java
+        )
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
         binding = ActivityMainBinding.inflate(layoutInflater)
         mainViewModel = ViewModelProvider(this).get(MainViewModel::class.java)
         setContentView(binding.root)
-
 
         setSupportActionBar(binding.appBarMain.toolbar)
         supportActionBar?.setDisplayShowTitleEnabled(false)
@@ -64,19 +57,7 @@ class MainActivity : AppCompatActivity() {
         createAction()
 
         //Create text To Speech
-        MainViewModel.textToSpeech = TextToSpeech(this, TextToSpeech.OnInitListener {
-            if (it == TextToSpeech.SUCCESS) {
-                mainViewModel.locales.value = MainViewModel.textToSpeech.availableLanguages
-                mainViewModel.choseDefaultLocale(
-                    MainViewModel.textToSpeech.language?.isO3Country,
-                    MainViewModel.textToSpeech.language?.isO3Language
-                )
-                MainViewModel.textToSpeech.setSpeechRate(mainViewModel.speechRate.value!!)
-                MainViewModel.textToSpeech.setPitch(mainViewModel.pitch.value!!)
-                MainViewModel.textToSpeech.language = mainViewModel.choseLocale.value
-                MainViewModel.textToSpeech.voice = mainViewModel.choseVoice.value
-            }
-        })
+        mainViewModel.createSpeech(this, settingViewModel)
     }
 
 
@@ -129,11 +110,19 @@ class MainActivity : AppCompatActivity() {
 
     private fun createAction() {
         binding.sldSpeechRate.addOnChangeListener { slider, value, fromUser ->
-            mainViewModel.setSpeechRate(value)
+            if(fromUser) {
+                mainViewModel.setSpeechRate(value)
+                mainViewModel.setting.value!!.speechRate = value
+                settingViewModel.updateSetting(mainViewModel.setting.value!!)
+            }
         }
 
         binding.sldPitch.addOnChangeListener { slider, value, fromUser ->
-            mainViewModel.setPitch(value)
+            if(fromUser){
+                mainViewModel.setPitch(value)
+                mainViewModel.setting.value!!.pitch = value
+                settingViewModel.updateSetting(mainViewModel.setting.value!!)
+            }
         }
 
         binding.aclChoseLanguage.setOnClickListener {
@@ -143,18 +132,32 @@ class MainActivity : AppCompatActivity() {
         }
 
         binding.aclChoseLanguage.setOnItemClickListener { parent, view, position, id ->
-            mainViewModel.choseLocale(mainViewModel.languages.value!!.get(position))
+            var local = mainViewModel.languages.value!!.get(position)
+            mainViewModel.choseLocale(local)
             binding.aclChoseLanguage.clearFocus()
+            mainViewModel.setting.value!!.language = mainViewModel.localToString(
+                mainViewModel.choseLocale.value
+            )
+            settingViewModel.updateSetting(mainViewModel.setting.value!!)
         }
 
         binding.aclChoseVoice.setOnItemClickListener { parent, view, position, id ->
             mainViewModel.choseVoice(mainViewModel.voiceNames.value!!.get(position))
             binding.aclChoseVoice.clearFocus()
+            mainViewModel.setting.value!!.voice = mainViewModel.choseVoice.value?.name
+            settingViewModel.updateSetting(mainViewModel.setting.value!!)
         }
 
         binding.aclChoseVoice.setOnClickListener {
             if (!binding.aclChoseVoice.isPopupShowing) {
                 binding.aclChoseVoice.clearFocus()
+            }
+        }
+
+        mainViewModel.onUpdateTextListener = object : MainViewModel.OnUpdateTextListener {
+            override fun update(text: String) {
+                mainViewModel.setting.value!!.currentText = text
+                settingViewModel.updateSetting(mainViewModel.setting.value!!)
             }
         }
     }
@@ -175,11 +178,26 @@ class MainActivity : AppCompatActivity() {
     override fun onOptionsItemSelected(item: MenuItem): Boolean {
         when (item.itemId) {
             R.id.action_export_file -> {
-                mainViewModel.onExportMp3Listener?.let {
-                    it.export()
+                if (AskPermission.filePermission(this)) {
+                    exportFileMp3()
                 }
             }
         }
         return super.onOptionsItemSelected(item)
+    }
+
+    fun exportFileMp3() {
+        mainViewModel.onExportMp3Listener?.let { it.export() }
+    }
+
+    override fun onRequestPermissionsResult(
+        requestCode: Int,
+        permissions: Array<out String>,
+        grantResults: IntArray
+    ) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults)
+        if (requestCode == AskPermission.REQUEST_FILE_CODE) {
+            exportFileMp3()
+        }
     }
 }
